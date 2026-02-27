@@ -263,7 +263,7 @@ else:
     st.write("Sila masukkan kata kunci di bar sisi dan klik 'Lancarkan Firewatch' untuk memulakan analisa.")
     col1, col2, col3 = st.columns(3)
     with col1: st.metric("Status Sistem", "ONLINE", "ACTIVE")
-    with col2: st.metric("Unit", "Surveilans Digital", "JKN KEDAH")
+    with col2: st.metric("Unit", "NCD", "JKN KEDAH")
     with col3: st.metric("Multi-AI Mode", "READY", "Gemini/GPT/DeepSeek")
     st.markdown("""
     ### Jadikan Surveilans Lebih Fleksibel:
@@ -271,4 +271,5 @@ else:
     2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
     3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
+
 
