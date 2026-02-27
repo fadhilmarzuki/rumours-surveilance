@@ -101,8 +101,8 @@ with st.sidebar:
 
     sources = st.multiselect(
         "SUMBER SURVEILANS",
-        options=["Portal Berita", "TikTok", "Facebook", "X (Twitter)"],
-        default=["Portal Berita"]
+        options=["Semua Platform", "Portal Berita", "TikTok", "Facebook", "X (Twitter)"],
+        default=["Semua Platform"]
     )
     
     # Map timeframe to Google News 'when' operator
@@ -135,14 +135,18 @@ if run_btn:
             if "Facebook" in sources: site_filters.append("site:facebook.com")
             if "X (Twitter)" in sources: site_filters.append("site:x.com OR site:twitter.com")
             
-            if site_filters:
-                # If searching social media, add viral keywords to catch discourse
+            if "Semua Platform" in sources:
+                # Global search with viral keywords
+                search_query = f"{base_query} (viral OR isu OR kecoh) when:{tf_code}"
+            elif site_filters:
+                # Specific platform search
                 platform_query = f"({ ' OR '.join(site_filters) })"
                 if "Portal Berita" in sources:
                     search_query = f"{base_query} (viral OR isu OR {platform_query}) when:{tf_code}"
                 else:
                     search_query = f"{base_query} {platform_query} when:{tf_code}"
             else:
+                # Only Portal Berita (Normal Search)
                 search_query = f"{base_query} when:{tf_code}"
 
             encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query)}&hl=ms&gl=MY&ceid=MY:ms"
