@@ -32,7 +32,7 @@ if 'ai_engine' not in st.session_state:
     st.session_state.ai_engine = "Gemini (Google)"
 
 # --- FUNCTIONS ---
-def run_ai_analysis():
+def run_ai_analysis(retry_count=0):
     if not st.session_state.api_key:
         st.error(f"Ralat: Sila masukkan API Key untuk {st.session_state.ai_engine} di bar sisi.")
         return
@@ -58,7 +58,6 @@ def run_ai_analysis():
         with st.spinner(f"🧠 {st.session_state.ai_engine} sedang menganalisa isu..."):
             if st.session_state.ai_engine == "Gemini (Google)":
                 client = genai.Client(api_key=st.session_state.api_key)
-                # Gunakan model yang dipilih dari sidebar
                 response = client.models.generate_content(model=gemini_model, contents=prompt)
                 st.session_state.ai_analysis = response.text
             
@@ -71,7 +70,6 @@ def run_ai_analysis():
                 st.session_state.ai_analysis = response.choices[0].message.content
             
             elif st.session_state.ai_engine == "DeepSeek":
-                # DeepSeek uses the OpenAI SDK but requires a different base_url
                 client = OpenAI(api_key=st.session_state.api_key, base_url="https://api.deepseek.com")
                 response = client.chat.completions.create(
                     model="deepseek-chat",
@@ -86,16 +84,23 @@ def run_ai_analysis():
                 
     except Exception as e:
         error_msg = str(e)
-        st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
-        st.code(error_msg) # Tunjukkan ralat sebenar untuk debugging
         
-        if "429" in error_msg:
-            st.warning("🚨 HAD KUOTA DICAPAI (Too Many Requests)")
-            st.info("Sila tunggu 1 minit sebelum mencuba lagi.")
-        elif "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
-            st.error("🔑 Masalah Kunci API: Sila pastikan kunci adalah sah untuk enjin ini.")
+        if "429" in error_msg and retry_count < 1:
+            st.warning("🚨 HAD KUOTA DICAPAI. Menunggu 30 saat untuk cuba semula secara automatik...")
+            progress_bar = st.progress(0)
+            for i in range(30):
+                time.sleep(1)
+                progress_bar.progress((i + 1) / 30)
+            st.rerun() # Cuba semula secara automatik
         else:
-            st.info("Sila pastikan anda mempunyai sambungan internet yang stabil dan API Key yang aktif.")
+            st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
+            st.code(error_msg)
+            if "429" in error_msg:
+                st.info("Had kuota percuma sangat ketat. Sila tunggu seminit sebelum cuba lagi.")
+            elif "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
+                st.error("🔑 Masalah Kunci API: Sila pastikan kunci adalah sah untuk enjin ini.")
+            else:
+                st.info("Sila pastikan anda mempunyai sambungan internet yang stabil dan API Key yang aktif.")
 
 # --- SIDEBAR ---
 with st.sidebar:
