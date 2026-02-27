@@ -42,6 +42,16 @@ with st.sidebar:
         value=st.session_state.keyword,
         placeholder="cth: bunuh diri kedah"
     )
+
+    timeframe = st.selectbox(
+        "TEMPOH MASA",
+        options=["1 hari", "3 hari", "7 hari", "30 hari"],
+        index=1  # Default 3 hari
+    )
+    
+    # Map timeframe to Google News 'when' operator
+    tf_map = {"1 hari": "1d", "3 hari": "3d", "7 hari": "7d", "30 hari": "30d"}
+    tf_code = tf_map[timeframe]
     
     st.markdown("---")
     run_btn = st.button("🚀 LANCARKAN FIREWATCH")
@@ -56,9 +66,11 @@ if run_btn:
     if not st.session_state.api_key:
         st.error("Ralat: Sila masukkan API Key Gemini di bar sisi.")
     else:
-        with st.spinner("⏳ Menghubungi satelit data... Sedang mencari isu terkini."):
+        with st.spinner(f"⏳ Menghubungi satelit data... Mencari isu dalam tempoh {timeframe}."):
             # 1. RSS FETCHING
-            encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(st.session_state.keyword)}&hl=ms&gl=MY&ceid=MY:ms"
+            # Tambah operator 'when:' untuk tempoh masa
+            search_query = f"{st.session_state.keyword} when:{tf_code}"
+            encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query)}&hl=ms&gl=MY&ceid=MY:ms"
             feed = feedparser.parse(encoded_url)
             
             if feed.entries:
@@ -70,7 +82,7 @@ if run_btn:
                     news_context += f"ISU {i+1}: {entry.title}\n"
 
                 # 2. DISPLAY DETECTED ISSUES FIRST
-                st.subheader(f"🔍 {len(st.session_state.last_results)} ISU REAL-TIME DIKESAN")
+                st.subheader(f"🔍 {len(st.session_state.last_results)} ISU REAL-TIME DIKESAN ({timeframe.upper()})")
                 st.caption("Data diambil terus daripada Google News RSS (Bukan Simulasi)")
                 
                 # Show a preview of the news items found
@@ -82,10 +94,11 @@ if run_btn:
                 st.markdown("---")
 
                 # 3. AI ANALYSIS
+                st.subheader("🧠 ANALISA PAKAR AI (JKN KEDAH)")
                 try:
                     client = genai.Client(api_key=st.session_state.api_key)
                     
-                    with st.spinner("🧠 Pakar AI sedang menganalisa keseluruhan senarai isu..."):
+                    with st.spinner("Pakar AI sedang menganalisa keseluruhan senarai isu..."):
                         response = client.models.generate_content(
                             model="gemini-2.0-flash", 
                             contents=f"""
@@ -106,29 +119,25 @@ if run_btn:
                             """
                         )
                     
-                    st.success("✅ ANALISIS BERKELOMPOK SIAP")
-                    st.markdown(response.text)
+                    if response.text:
+                        st.success("✅ ANALISIS BERKELOMPOK SIAP")
+                        st.markdown(response.text)
+                    else:
+                        st.info("Tiada isu yang signifikan dijumpai dalam laporan berita ini.")
                             
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg:
-                        st.error("🚨 KUOTA AI TAMAT (RESOURCE EXHAUSTED)")
-                        st.warning("""
-                        Punca: Anda menggunakan pelan percuma Gemini. 
-                        Tindakan: Sila tunggu 1 minit sebelum mencuba lagi.
-                        Tips: Batching telah diaktifkan untuk mengurangkan penggunaan kuota.
-                        """)
+                        st.warning("🚨 KUOTA AI TAMAT (RESOURCE EXHAUSTED)")
+                        st.error("Carian berita berjaya, tetapi analisa AI tidak dapat dijalankan buat masa ini kerana had kuota. Sila cuba lagi dalam 1 minit.")
                     elif "API_KEY_INVALID" in error_msg or "400" in error_msg:
                         st.error("❌ API KEY TIDAK SAH")
-                        st.error("""
-                        Sila pastikan API Key yang anda masukkan di bar sisi adalah betul. 
-                        Anda boleh mendapatkan kunci baru dari [Google AI Studio](https://aistudio.google.com/app/apikey).
-                        """)
-                        st.info("Nota: Anda masih boleh melihat senarai berita yang ditemui di atas.")
+                        st.info("Sila masukkan API Key Gemini yang sah di bar sisi untuk menjalankan analisa AI.")
                     else:
-                        st.error(f"⚠️ Ralat Teknikal: {error_msg}")
-                        st.info("Menjalankan mod simulasi untuk demonstrasi...")
-                        st.write("**Sentimen:** Resah | **Risiko:** 7/10 | **Tindakan:** Pantau media sosial.")
+                        st.error(f"⚠️ Ralat Teknikal AI: {error_msg}")
+                        st.info("Carian berita berjaya, namun analisa pakar gagal dijalankan kerana ralat teknikal.")
+            else:
+                st.warning(f"Tiada isu yang signifikan dijumpai untuk kata kunci '{st.session_state.keyword}' dalam tempoh {timeframe}.")
             else:
                 st.warning("Tiada berita baru ditemui untuk kata kunci tersebut.")
 
