@@ -98,6 +98,12 @@ with st.sidebar:
         options=["1 hari", "3 hari", "7 hari", "30 hari"],
         index=1  # Default 3 hari
     )
+
+    sources = st.multiselect(
+        "SUMBER SURVEILANS",
+        options=["Portal Berita", "TikTok", "Facebook", "X (Twitter)"],
+        default=["Portal Berita"]
+    )
     
     # Map timeframe to Google News 'when' operator
     tf_map = {"1 hari": "1d", "3 hari": "3d", "7 hari": "7d", "30 hari": "30d"}
@@ -116,10 +122,29 @@ if run_btn:
     st.session_state.ai_analysis = "" # Reset analysis on new run
     if not st.session_state.api_key:
         st.error("Ralat: Sila masukkan API Key Gemini di bar sisi.")
+    elif not sources:
+        st.error("Ralat: Sila pilih sekurang-kurangnya satu sumber surveilans.")
     else:
-        with st.spinner(f"⏳ Menghubungi satelit data... Mencari isu dalam tempoh {timeframe}."):
-            # 1. RSS FETCHING
-            search_query = f"{st.session_state.keyword} when:{tf_code}"
+        with st.spinner(f"⏳ Menghubungi satelit data... Mencari di {', '.join(sources)}."):
+            # 1. RSS FETCHING - Construct Advanced Query
+            base_query = st.session_state.keyword
+            
+            # Platform filters
+            site_filters = []
+            if "TikTok" in sources: site_filters.append("site:tiktok.com")
+            if "Facebook" in sources: site_filters.append("site:facebook.com")
+            if "X (Twitter)" in sources: site_filters.append("site:x.com OR site:twitter.com")
+            
+            if site_filters:
+                # If searching social media, add viral keywords to catch discourse
+                platform_query = f"({ ' OR '.join(site_filters) })"
+                if "Portal Berita" in sources:
+                    search_query = f"{base_query} (viral OR isu OR {platform_query}) when:{tf_code}"
+                else:
+                    search_query = f"{base_query} {platform_query} when:{tf_code}"
+            else:
+                search_query = f"{base_query} when:{tf_code}"
+
             encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query)}&hl=ms&gl=MY&ceid=MY:ms"
             feed = feedparser.parse(encoded_url)
             
@@ -135,7 +160,7 @@ if run_btn:
                 run_ai_analysis()
             else:
                 st.session_state.last_results = []
-                st.warning(f"Tiada isu yang signifikan dijumpai untuk kata kunci '{st.session_state.keyword}' dalam tempoh {timeframe}.")
+                st.warning(f"Tiada isu yang signifikan dijumpai untuk '{st.session_state.keyword}' di platform yang dipilih bagi tempoh {timeframe}.")
 
 # --- DISPLAY SECTION ---
 if st.session_state.last_results:
