@@ -32,6 +32,8 @@ if 'ai_engine' not in st.session_state:
     st.session_state.ai_engine = "Gemini (Google)"
 if 'retry_active' not in st.session_state:
     st.session_state.retry_active = False
+if 'retry_count' not in st.session_state:
+    st.session_state.retry_count = 0
 
 # --- FUNCTIONS ---
 def run_ai_analysis(retry_count=0):
@@ -95,14 +97,21 @@ def run_ai_analysis(retry_count=0):
             st.session_state.retry_active = False
             return
 
-        if "429" in error_msg and retry_count < 1:
-            st.warning("🚨 HAD KUOTA DICAPAI. Menunggu 30 saat untuk cuba semula secara automatik...")
-            st.session_state.retry_active = True
-            progress_bar = st.progress(0)
-            for i in range(30):
-                time.sleep(1)
-                progress_bar.progress((i + 1) / 30)
-            st.rerun() 
+        if "429" in error_msg:
+            if st.session_state.retry_count < 3:
+                st.session_state.retry_count += 1
+                st.warning(f"🚨 HAD KUOTA DICAPAI (Cubaan {st.session_state.retry_count}/3). Menunggu 30 saat untuk cuba semula...")
+                st.session_state.retry_active = True
+                progress_bar = st.progress(0)
+                for i in range(30):
+                    time.sleep(1)
+                    progress_bar.progress((i + 1) / 30)
+                st.rerun() 
+            else:
+                st.error("❌ HAD CUBAAN MAKSIMUM (3) DICAPAI")
+                st.info("Sila tunggu 1 minit dan klik 'Cuba Analisa Semula' secara manual.")
+                st.session_state.retry_count = 0
+                st.session_state.retry_active = False
         else:
             st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
             st.code(error_msg)
