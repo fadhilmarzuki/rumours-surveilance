@@ -58,8 +58,8 @@ def run_ai_analysis():
         with st.spinner(f"🧠 {st.session_state.ai_engine} sedang menganalisa isu..."):
             if st.session_state.ai_engine == "Gemini (Google)":
                 client = genai.Client(api_key=st.session_state.api_key)
-                # Model switch to 1.5 flash for significantly higher free tier limits
-                response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+                # Model switch to 1.5 flash latest for better compatibility and higher limits
+                response = client.models.generate_content(model="gemini-1.5-flash-latest", contents=prompt)
                 st.session_state.ai_analysis = response.text
             
             elif st.session_state.ai_engine == "ChatGPT (OpenAI)":
