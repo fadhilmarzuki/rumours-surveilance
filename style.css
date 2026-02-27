@@ -69,6 +69,43 @@ h1, h2, h3 {
     font-weight: bold;
 }
 
+/* Sidebar Styling */
+[data-testid="stSidebar"] {
+    background-color: #161b22 !important;
+    border-right: 1px solid var(--primary-color);
+}
+
+[data-testid="stSidebar"] .stMarkdown h1, 
+[data-testid="stSidebar"] .stMarkdown h2, 
+[data-testid="stSidebar"] .stMarkdown h3 {
+    color: var(--text-color) !important;
+    font-size: 1.2rem;
+}
+
+.stTextInput > label {
+    color: var(--text-color) !important;
+    font-weight: bold;
+}
+
+.stTextInput > div > div > input {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 75, 43, 0.3) !important;
+    border-radius: 8px !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 5px var(--primary-color) !important;
+}
+
+/* Info Messages color */
+.stAlert {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-color) !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 10px;
