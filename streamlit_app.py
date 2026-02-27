@@ -58,8 +58,8 @@ def run_ai_analysis():
         with st.spinner(f"🧠 {st.session_state.ai_engine} sedang menganalisa isu..."):
             if st.session_state.ai_engine == "Gemini (Google)":
                 client = genai.Client(api_key=st.session_state.api_key)
-                # Model switch to 1.5 flash latest for better compatibility and higher limits
-                response = client.models.generate_content(model="gemini-1.5-flash-latest", contents=prompt)
+                # Gunakan model yang dipilih dari sidebar
+                response = client.models.generate_content(model=gemini_model, contents=prompt)
                 st.session_state.ai_analysis = response.text
             
             elif st.session_state.ai_engine == "ChatGPT (OpenAI)":
@@ -103,24 +103,45 @@ with st.sidebar:
     st.title("KIF CONTROL")
     st.markdown("---")
     
-    new_engine = st.selectbox(
+    st.session_state.ai_engine = st.selectbox(
         "PILIH ENJIN AI",
         options=["Gemini (Google)", "ChatGPT (OpenAI)", "DeepSeek"],
         index=0
     )
-    
-    # Reset analysis if engine changes to avoid confusion
-    if new_engine != st.session_state.ai_engine:
-        st.session_state.ai_engine = new_engine
-        st.session_state.ai_analysis = ""
-        st.rerun()
+
+    # Sub-options for Gemini models if selected
+    gemini_model = "gemini-2.0-flash"
+    if st.session_state.ai_engine == "Gemini (Google)":
+        gemini_model = st.selectbox(
+            "VERSI GEMINI",
+            options=["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
+            index=0,
+            help="Jika keluar ralat 404, cuba tukar ke versi lain."
+        )
 
     st.session_state.api_key = st.text_input(
         f"KUNCI API {st.session_state.ai_engine.upper()}", 
         value=st.session_state.api_key, 
         type="password",
-        help=f"Pastikan anda menggunakan kunci yang sah untuk {st.session_state.ai_engine}."
+        help=f"Pastikan kunci anda sah untuk {st.session_state.ai_engine}."
     )
+    
+    with st.expander("🛠️ DEBUG (TEKNIKAL)"):
+        if st.button("SENARAI MODEL TERSEDIA"):
+            if not st.session_state.api_key:
+                st.error("Masukkan API Key dahulu.")
+            else:
+                try:
+                    if st.session_state.ai_engine == "Gemini (Google)":
+                        client = genai.Client(api_key=st.session_state.api_key)
+                        models = client.models.list()
+                        st.write("Model yang kunci anda boleh akses:")
+                        for m in models:
+                            st.code(m.name)
+                    else:
+                        st.info("Ciri ini hanya untuk Gemini buat masa ini.")
+                except Exception as e:
+                    st.error(f"Gagal senaraikan model: {str(e)}")
     
     st.session_state.keyword = st.text_input(
         "KATA KUNCI SURVEILANS", 
