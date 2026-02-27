@@ -138,8 +138,6 @@ if run_btn:
                         st.info("Carian berita berjaya, namun analisa pakar gagal dijalankan kerana ralat teknikal.")
             else:
                 st.warning(f"Tiada isu yang signifikan dijumpai untuk kata kunci '{st.session_state.keyword}' dalam tempoh {timeframe}.")
-            else:
-                st.warning("Tiada berita baru ditemui untuk kata kunci tersebut.")
 
 else:
     # Initial State / Welcome
