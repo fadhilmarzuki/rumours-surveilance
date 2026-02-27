@@ -94,34 +94,22 @@ def run_ai_analysis(retry_count=0):
         
         # Kes Khas OpenAI (Insufficient Balance)
         if "insufficient_quota" in error_msg.lower():
-            st.error("💳 BAKI AKAUN TIADA (OpenAI/ChatGPT)")
-            st.info("Nota: Akaun ChatGPT API anda perlu diisi prabayar (min $5). Sila semak status di platform.openai.com.")
+            st.session_state.error_feedback = ("error", "💳 BAKI AKAUN TIADA (OpenAI/ChatGPT)", "Nota: Akaun ChatGPT API anda perlu diisi prabayar (min $5). Sila semak status di platform.openai.com.")
             st.session_state.retry_active = False
             return
 
         if "429" in error_msg:
             if st.session_state.retry_count < 3:
                 st.session_state.retry_count += 1
-                st.warning(f"🚨 HAD KUOTA DICAPAI (Cubaan {st.session_state.retry_count}/3). Menunggu 30 saat untuk cuba semula...")
                 st.session_state.retry_active = True
-                progress_bar = st.progress(0)
-                for i in range(30):
-                    time.sleep(1)
-                    progress_bar.progress((i + 1) / 30)
-                st.rerun() 
+                # Kita tidak st.rerun di sini lagi, kita biarkan Display Section kendalikan countdown
             else:
-                st.error("❌ HAD CUBAAN MAKSIMUM (3) DICAPAI")
-                st.info("Sila tunggu 1 minit dan klik 'Cuba Analisa Semula' secara manual.")
+                st.session_state.error_feedback = ("limit", "❌ HAD CUBAAN MAKSIMUM (3) DICAPAI", "Sila tunggu 1 minit dan klik 'Cuba Analisa Semula' secara manual.")
                 st.session_state.retry_count = 0
                 st.session_state.retry_active = False
         else:
-            st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
-            st.code(error_msg)
+            st.session_state.error_feedback = ("error", f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}", error_msg)
             st.session_state.retry_active = False
-            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
-                st.error("🔑 Masalah Kunci API: Sila pastikan kunci adalah sah untuk enjin ini.")
-            else:
-                st.info("Sila pastikan anda mempunyai sambungan internet yang stabil dan API Key yang aktif.")
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -196,11 +184,6 @@ with st.sidebar:
     
     st.info("KIF v3.0 (Standalone Mode)")
 
-# --- AUTO-RETRY LOGIC ---
-if st.session_state.retry_active:
-    st.session_state.retry_active = False
-    run_ai_analysis()
-
 # --- MAIN CONTENT ---
 st.title("🛡️ Kedah Infodemic Firewatch")
 st.markdown("### Sistem Pemantauan Isu Kesihatan Awam")
@@ -209,6 +192,7 @@ if run_btn:
     st.session_state.ai_analysis = ""
     st.session_state.retry_count = 0
     st.session_state.retry_active = False
+    st.session_state.error_feedback = None
     if not st.session_state.api_key:
         st.error(f"Ralat: Sila masukkan API Key {st.session_state.ai_engine} di bar sisi.")
     elif not sources:
@@ -282,9 +266,29 @@ if st.session_state.last_results:
     
     if st.session_state.ai_analysis:
         st.markdown(st.session_state.ai_analysis)
+    elif st.session_state.retry_active:
+        # Tunjukkan countdown di sini (Bahagian bawah)
+        st.warning(f"🚨 HAD KUOTA DICAPAI (Cubaan {st.session_state.retry_count}/3). Menunggu 30 saat untuk cuba semula secara automatik...")
+        progress_bar = st.progress(0)
+        for i in range(30):
+            time.sleep(1)
+            progress_bar.progress((i + 1) / 30)
+        st.session_state.retry_active = False # Reset supaya tidak loop di DISPLAY
+        run_ai_analysis()
+        st.rerun()
+    elif 'error_feedback' in st.session_state and st.session_state.error_feedback:
+        etype, title, msg = st.session_state.error_feedback
+        st.error(title)
+        st.info(msg)
+        # Jangan delete lagi supaya user nampak, kita delete bila Firewatch baru bermula
+        if st.button("🔄 CUBA ANALISA SEMULA"):
+            st.session_state.error_feedback = None
+            run_ai_analysis()
+            st.rerun()
     else:
         st.info("Analisa AI tidak tersedia buat masa ini.")
         if st.button("🔄 CUBA ANALISA SEMULA"):
+            st.session_state.error_feedback = None
             run_ai_analysis()
             st.rerun()
 
@@ -300,4 +304,3 @@ else:
     2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
     3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
-
