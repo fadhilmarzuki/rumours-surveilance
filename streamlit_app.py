@@ -70,13 +70,14 @@ if run_btn:
                     news_context += f"ISU {i+1}: {entry.title}\n"
 
                 # 2. DISPLAY DETECTED ISSUES FIRST
-                st.subheader(f"🔍 {len(st.session_state.last_results)} ISU DIKESAN")
+                st.subheader(f"🔍 {len(st.session_state.last_results)} ISU REAL-TIME DIKESAN")
+                st.caption("Data diambil terus daripada Google News RSS (Bukan Simulasi)")
                 
                 # Show a preview of the news items found
                 for i, entry in enumerate(st.session_state.last_results):
                     with st.expander(f"📌 {entry.title}", expanded=(i==0)):
-                        st.write(f"**Sumber:** {entry.get('source', {}).get('title', 'Google News')}")
-                        st.write(f"**Pautan:** [Baca Berita Penuh]({entry.link})")
+                        st.write(f"**Sumber Berita:** {entry.get('source', {}).get('title', 'Berita Tempatan')}")
+                        st.markdown(f"**Pautan Terus:** [KLIK SINI UNTUK BACA BERITA PENUH]({entry.link})")
                 
                 st.markdown("---")
 
