@@ -30,6 +30,8 @@ if 'news_context' not in st.session_state:
     st.session_state.news_context = ""
 if 'ai_engine' not in st.session_state:
     st.session_state.ai_engine = "Gemini (Google)"
+if 'retry_active' not in st.session_state:
+    st.session_state.retry_active = False
 
 # --- FUNCTIONS ---
 def run_ai_analysis(retry_count=0):
@@ -84,27 +86,36 @@ def run_ai_analysis(retry_count=0):
                 
     except Exception as e:
         error_msg = str(e)
+        st.session_state.ai_analysis = ""
         
+        # Kes Khas OpenAI (Insufficient Balance)
+        if "insufficient_quota" in error_msg.lower():
+            st.error("💳 BAKI AKAUN TIADA (OpenAI/ChatGPT)")
+            st.info("Nota: Akaun ChatGPT API anda perlu diisi prabayar (min $5). Sila semak status di platform.openai.com.")
+            st.session_state.retry_active = False
+            return
+
         if "429" in error_msg and retry_count < 1:
             st.warning("🚨 HAD KUOTA DICAPAI. Menunggu 30 saat untuk cuba semula secara automatik...")
+            st.session_state.retry_active = True
             progress_bar = st.progress(0)
             for i in range(30):
                 time.sleep(1)
                 progress_bar.progress((i + 1) / 30)
-            st.rerun() # Cuba semula secara automatik
+            st.rerun() 
         else:
             st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
             st.code(error_msg)
-            if "429" in error_msg:
-                st.info("Had kuota percuma sangat ketat. Sila tunggu seminit sebelum cuba lagi.")
-            elif "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
+            st.session_state.retry_active = False
+            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
                 st.error("🔑 Masalah Kunci API: Sila pastikan kunci adalah sah untuk enjin ini.")
             else:
                 st.info("Sila pastikan anda mempunyai sambungan internet yang stabil dan API Key yang aktif.")
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Coat_of_arms_of_Kedah.svg", width=100)
+    # Menggunakan PNG link yang lebih stabil untuk logo Kedah
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Coat_of_arms_of_Kedah.svg/150px-Coat_of_arms_of_Kedah.svg.png", width=100)
     st.title("KIF CONTROL")
     st.markdown("---")
     
@@ -173,6 +184,11 @@ with st.sidebar:
     run_btn = st.button("🚀 LANCARKAN FIREWATCH")
     
     st.info("KIF v3.0 (Standalone Mode)")
+
+# --- AUTO-RETRY LOGIC ---
+if st.session_state.retry_active:
+    st.session_state.retry_active = False
+    run_ai_analysis()
 
 # --- MAIN CONTENT ---
 st.title("🛡️ Kedah Infodemic Firewatch")
@@ -271,5 +287,3 @@ else:
     2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
     3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
-
-
