@@ -69,9 +69,18 @@ if run_btn:
                 for i, entry in enumerate(st.session_state.last_results):
                     news_context += f"ISU {i+1}: {entry.title}\n"
 
-                # Tunjukkan header pengesanan
+                # 2. DISPLAY DETECTED ISSUES FIRST
                 st.subheader(f"🔍 {len(st.session_state.last_results)} ISU DIKESAN")
                 
+                # Show a preview of the news items found
+                for i, entry in enumerate(st.session_state.last_results):
+                    with st.expander(f"📌 {entry.title}", expanded=(i==0)):
+                        st.write(f"**Sumber:** {entry.get('source', {}).get('title', 'Google News')}")
+                        st.write(f"**Pautan:** [Baca Berita Penuh]({entry.link})")
+                
+                st.markdown("---")
+
+                # 3. AI ANALYSIS
                 try:
                     client = genai.Client(api_key=st.session_state.api_key)
                     
@@ -98,22 +107,25 @@ if run_btn:
                     
                     st.success("✅ ANALISIS BERKELOMPOK SIAP")
                     st.markdown(response.text)
-                    
-                    # Tambah pautan berita di bawah
-                    with st.expander("🔗 Pautan Berita Asal"):
-                        for entry in st.session_state.last_results:
-                            st.markdown(f"- [{entry.title}]({entry.link})")
                             
                 except Exception as e:
-                    if "429" in str(e):
+                    error_msg = str(e)
+                    if "429" in error_msg:
                         st.error("🚨 KUOTA AI TAMAT (RESOURCE EXHAUSTED)")
                         st.warning("""
                         Punca: Anda menggunakan pelan percuma Gemini. 
                         Tindakan: Sila tunggu 1 minit sebelum mencuba lagi.
                         Tips: Batching telah diaktifkan untuk mengurangkan penggunaan kuota.
                         """)
+                    elif "API_KEY_INVALID" in error_msg or "400" in error_msg:
+                        st.error("❌ API KEY TIDAK SAH")
+                        st.error("""
+                        Sila pastikan API Key yang anda masukkan di bar sisi adalah betul. 
+                        Anda boleh mendapatkan kunci baru dari [Google AI Studio](https://aistudio.google.com/app/apikey).
+                        """)
+                        st.info("Nota: Anda masih boleh melihat senarai berita yang ditemui di atas.")
                     else:
-                        st.error(f"⚠️ Ralat Teknikal: {str(e)}")
+                        st.error(f"⚠️ Ralat Teknikal: {error_msg}")
                         st.info("Menjalankan mod simulasi untuk demonstrasi...")
                         st.write("**Sentimen:** Resah | **Risiko:** 7/10 | **Tindakan:** Pantau media sosial.")
             else:
