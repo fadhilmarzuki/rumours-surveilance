@@ -278,7 +278,7 @@ if st.session_state.last_results:
             st.markdown(f"**Pautan Terus:** [KLIK SINI UNTUK BACA BERITA PENUH]({entry.link})")
     
     st.markdown("---")
-    st.subheader(f"🧠 ANALISA {st.session_state.ai_engine.upper()}")
+    st.subheader(f"🧠 ANALISA SENTIMEN {st.session_state.ai_engine.upper()}")
     
     if st.session_state.ai_analysis:
         st.markdown(st.session_state.ai_analysis)
@@ -300,3 +300,4 @@ else:
     2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
     3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
+
