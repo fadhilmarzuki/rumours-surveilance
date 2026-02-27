@@ -34,6 +34,10 @@ if 'retry_active' not in st.session_state:
     st.session_state.retry_active = False
 if 'retry_count' not in st.session_state:
     st.session_state.retry_count = 0
+if 'debug_mode' not in st.session_state:
+    st.session_state.debug_mode = False
+if 'error_feedback' not in st.session_state:
+    st.session_state.error_feedback = None
 
 # --- FUNCTIONS ---
 def run_ai_analysis(retry_count=0):
@@ -42,22 +46,22 @@ def run_ai_analysis(retry_count=0):
         return
 
     try:
+        # Prompt yang lebih ringkas dan direct untuk kurangkan ralat safety filter
         prompt = f"""
-        Berlakon sebagai Pakar Kesihatan Awam dan Komunikasi Risiko di JKN Kedah.
-        Analisis senarai berita berikut secara berasingan:
-        
+        TUGAS: Analisis isu kesihatan awam dari berita berikut:
         {st.session_state.news_context}
         
-        Sila berikan output dalam format Markdown yang kemas. 
-        Bagi SETIAP isu, berikan:
-        1. **Isu**: (Tajuk Isu)
-        2. **Sentiment**: (Positif/Negatif/Neutral)
-        3. **Tahap Risiko**: (Skor 1-10 &sebab)
-        4. **Cadangan**: (Tindakan JKN Kedah)
-        5. **Status Fakta**: (Sahih/Rumor/Clickbait)
-        
-        Gunakan format 'card' atau pembahagi yang jelas antara isu.
+        FORMAT (Markdown):
+        - **Isu**: (Tajuk)
+        - **Sentimen**: (Positif/Negatif/Neutral)
+        - **Tahap Risiko**: (Skor 1-10)
+        - **Cadangan**: (Tindakan JKN Kedah)
+        - **Fakta**: (Sahih/Rumor)
         """
+        
+        if st.session_state.debug_mode:
+            st.info("🔍 PROMPT DIHANTAR:")
+            st.code(prompt)
 
         with st.spinner(f"🧠 {st.session_state.ai_engine} sedang menganalisa isu..."):
             if st.session_state.ai_engine == "Gemini (Google)":
@@ -157,6 +161,8 @@ with st.sidebar:
                         st.info("Ciri ini hanya untuk Gemini buat masa ini.")
                 except Exception as e:
                     st.error(f"Gagal senaraikan model: {str(e)}")
+        
+        st.session_state.debug_mode = st.checkbox("🔍 MODE DEBUG (LIHAT PROMPT)", value=st.session_state.debug_mode)
     
     st.session_state.keyword = st.text_input(
         "KATA KUNCI SURVEILANS", 
