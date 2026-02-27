@@ -176,7 +176,7 @@ with st.sidebar:
 
 # --- MAIN CONTENT ---
 st.title("🛡️ Kedah Infodemic Firewatch")
-st.markdown("### Command Center Pemantauan Isu Kesihatan Awam")
+st.markdown("### Sistem Pemantauan Isu Kesihatan Awam")
 
 if run_btn:
     st.session_state.ai_analysis = ""
@@ -271,3 +271,4 @@ else:
     2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
     3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
+
