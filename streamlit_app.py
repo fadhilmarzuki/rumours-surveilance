@@ -124,8 +124,8 @@ def run_ai_analysis(retry_count=0):
 # --- SIDEBAR ---
 with st.sidebar:
     # Menggunakan PNG link yang lebih stabil untuk logo Kedah
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Coat_of_arms_of_Kedah.svg/150px-Coat_of_arms_of_Kedah.svg.png", width=100)
-    st.title("KIF CONTROL")
+    st.image("https://1.bp.blogspot.com/-3jdAodgrlNc/YCNqEAeitTI/AAAAAAAAdqc/A02ZZrvJZs4sL48I6OpR9ob_fhYfRDFWgCNcBGAsYHQ/s16000/JKN%2BKEDAH.png", width=100)
+    st.title("PANEL CONTROL")
     st.markdown("---")
     
     st.session_state.ai_engine = st.selectbox(
