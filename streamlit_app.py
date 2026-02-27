@@ -2,6 +2,7 @@ import streamlit as st
 import feedparser
 import urllib.parse
 from google import genai
+from openai import OpenAI
 import time
 
 # --- PAGE CONFIG ---
@@ -27,52 +28,67 @@ if 'ai_analysis' not in st.session_state:
     st.session_state.ai_analysis = ""
 if 'news_context' not in st.session_state:
     st.session_state.news_context = ""
+if 'ai_engine' not in st.session_state:
+    st.session_state.ai_engine = "Gemini (Google)"
 
 # --- FUNCTIONS ---
 def run_ai_analysis():
     if not st.session_state.api_key:
-        st.error("Ralat: Sila masukkan API Key Gemini di bar sisi.")
+        st.error(f"Ralat: Sila masukkan API Key untuk {st.session_state.ai_engine} di bar sisi.")
         return
 
     try:
-        client = genai.Client(api_key=st.session_state.api_key)
-        with st.spinner("🧠 Pakar AI sedang menganalisa keseluruhan senarai isu..."):
-            response = client.models.generate_content(
-                model="gemini-2.0-flash", 
-                contents=f"""
-                Berlakon sebagai Pakar Kesihatan Awam dan Komunikasi Risiko di JKN Kedah.
-                Analisis senarai berita berikut secara berasingan:
-                
-                {st.session_state.news_context}
-                
-                Sila berikan output dalam format Markdown yang kemas. 
-                Bagi SETIAP isu, berikan:
-                1. **Isu**: (Tajuk Isu)
-                2. **Sentiment**: (Positif/Negatif/Neutral)
-                3. **Tahap Risiko**: (Skor 1-10 &sebab)
-                4. **Cadangan**: (Tindakan JKN Kedah)
-                5. **Status Fakta**: (Sahih/Rumor/Clickbait)
-                
-                Gunakan format 'card' atau pembahagi yang jelas antara isu.
-                """
-            )
+        prompt = f"""
+        Berlakon sebagai Pakar Kesihatan Awam dan Komunikasi Risiko di JKN Kedah.
+        Analisis senarai berita berikut secara berasingan:
         
-        if response.text:
-            st.session_state.ai_analysis = response.text
-            st.success("✅ ANALISIS BERKELOMPOK SIAP")
+        {st.session_state.news_context}
+        
+        Sila berikan output dalam format Markdown yang kemas. 
+        Bagi SETIAP isu, berikan:
+        1. **Isu**: (Tajuk Isu)
+        2. **Sentiment**: (Positif/Negatif/Neutral)
+        3. **Tahap Risiko**: (Skor 1-10 &sebab)
+        4. **Cadangan**: (Tindakan JKN Kedah)
+        5. **Status Fakta**: (Sahih/Rumor/Clickbait)
+        
+        Gunakan format 'card' atau pembahagi yang jelas antara isu.
+        """
+
+        with st.spinner(f"🧠 {st.session_state.ai_engine} sedang menganalisa isu..."):
+            if st.session_state.ai_engine == "Gemini (Google)":
+                client = genai.Client(api_key=st.session_state.api_key)
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                st.session_state.ai_analysis = response.text
+            
+            elif st.session_state.ai_engine == "ChatGPT (OpenAI)":
+                client = OpenAI(api_key=st.session_state.api_key)
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                st.session_state.ai_analysis = response.choices[0].message.content
+            
+            elif st.session_state.ai_engine == "DeepSeek":
+                client = OpenAI(api_key=st.session_state.api_key, base_url="https://api.deepseek.com")
+                response = client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                st.session_state.ai_analysis = response.choices[0].message.content
+
+        if st.session_state.ai_analysis:
+            st.success(f"✅ ANALISIS {st.session_state.ai_engine.upper()} SIAP")
         else:
-            st.info("Tiada isu yang signifikan dijumpai dalam laporan berita ini.")
+            st.info("Tiada output dari AI. Sila cuba lagi.")
                 
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg:
-            st.warning("🚨 KUOTA AI TAMAT (RESOURCE EXHAUSTED)")
-            st.error("Sila tunggu 1 minit sebelum menekan butang 'Cuba Analisa Semula' di bawah.")
-        elif "API_KEY_INVALID" in error_msg or "400" in error_msg:
-            st.error("❌ API KEY TIDAK SAH")
-            st.info("Sila masukkan API Key Gemini yang sah.")
+            st.warning("🚨 HAD KUOTA DICAPAI")
+            st.error("Sila tunggu 1 minit sebelum menekan butang 'Cuba Analisa Semula'.")
         else:
-            st.error(f"⚠️ Ralat Teknikal AI: {error_msg}")
+            st.error(f"⚠️ Ralat AI ({st.session_state.ai_engine}): {error_msg}")
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -80,11 +96,16 @@ with st.sidebar:
     st.title("KIF CONTROL")
     st.markdown("---")
     
+    st.session_state.ai_engine = st.selectbox(
+        "PILIH ENJIN AI",
+        options=["Gemini (Google)", "ChatGPT (OpenAI)", "DeepSeek"],
+        index=0
+    )
+
     st.session_state.api_key = st.text_input(
-        "GEMINI API KEY", 
+        f"KUNCI API {st.session_state.ai_engine.upper()}", 
         value=st.session_state.api_key, 
-        type="password",
-        help="Dapatkan kunci API anda dari Google AI Studio."
+        type="password"
     )
     
     st.session_state.keyword = st.text_input(
@@ -96,7 +117,7 @@ with st.sidebar:
     timeframe = st.selectbox(
         "TEMPOH MASA",
         options=["1 hari", "3 hari", "7 hari", "30 hari"],
-        index=1  # Default 3 hari
+        index=1
     )
 
     sources = st.multiselect(
@@ -105,7 +126,6 @@ with st.sidebar:
         default=["Semua Platform"]
     )
     
-    # Map timeframe to Google News 'when' operator
     tf_map = {"1 hari": "1d", "3 hari": "3d", "7 hari": "7d", "30 hari": "30d"}
     tf_code = tf_map[timeframe]
     
@@ -119,34 +139,28 @@ st.title("🛡️ Kedah Infodemic Firewatch")
 st.markdown("### Command Center Pemantauan Isu Kesihatan Awam")
 
 if run_btn:
-    st.session_state.ai_analysis = "" # Reset analysis on new run
+    st.session_state.ai_analysis = ""
     if not st.session_state.api_key:
-        st.error("Ralat: Sila masukkan API Key Gemini di bar sisi.")
+        st.error(f"Ralat: Sila masukkan API Key {st.session_state.ai_engine} di bar sisi.")
     elif not sources:
         st.error("Ralat: Sila pilih sekurang-kurangnya satu sumber surveilans.")
     else:
-        with st.spinner(f"⏳ Menghubungi satelit data... Mencari di {', '.join(sources)}."):
-            # 1. RSS FETCHING - Construct Advanced Query
+        with st.spinner(f"⏳ Mencari data di {', '.join(sources)}..."):
             base_query = st.session_state.keyword
-            
-            # Platform filters
             site_filters = []
             if "TikTok" in sources: site_filters.append("site:tiktok.com")
             if "Facebook" in sources: site_filters.append("site:facebook.com")
             if "X (Twitter)" in sources: site_filters.append("site:x.com OR site:twitter.com")
             
             if "Semua Platform" in sources:
-                # Global search with viral keywords
                 search_query = f"{base_query} (viral OR isu OR kecoh) when:{tf_code}"
             elif site_filters:
-                # Specific platform search
                 platform_query = f"({ ' OR '.join(site_filters) })"
                 if "Portal Berita" in sources:
                     search_query = f"{base_query} (viral OR isu OR {platform_query}) when:{tf_code}"
                 else:
                     search_query = f"{base_query} {platform_query} when:{tf_code}"
             else:
-                # Only Portal Berita (Normal Search)
                 search_query = f"{base_query} when:{tf_code}"
 
             encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query)}&hl=ms&gl=MY&ceid=MY:ms"
@@ -154,57 +168,42 @@ if run_btn:
             
             if feed.entries:
                 st.session_state.last_results = feed.entries[:5]
-                
-                # Sediakan input untuk AI
                 st.session_state.news_context = ""
                 for i, entry in enumerate(st.session_state.last_results):
                     st.session_state.news_context += f"ISU {i+1}: {entry.title}\n"
-                
-                # Jalankan analisa kali pertama
                 run_ai_analysis()
             else:
                 st.session_state.last_results = []
-                st.warning(f"Tiada isu yang signifikan dijumpai untuk '{st.session_state.keyword}' di platform yang dipilih bagi tempoh {timeframe}.")
+                st.warning(f"Tiada isu dijumpai untuk '{st.session_state.keyword}' bagi tempoh {timeframe}.")
 
 # --- DISPLAY SECTION ---
 if st.session_state.last_results:
     st.subheader(f"🔍 {len(st.session_state.last_results)} ISU REAL-TIME DIKESAN")
-    st.caption("Data daripada Google News RSS")
-    
     for i, entry in enumerate(st.session_state.last_results):
         with st.expander(f"📌 {entry.title}", expanded=(i==0)):
             st.write(f"**Sumber Berita:** {entry.get('source', {}).get('title', 'Berita Tempatan')}")
             st.markdown(f"**Pautan Terus:** [KLIK SINI UNTUK BACA BERITA PENUH]({entry.link})")
     
     st.markdown("---")
-    st.subheader("🧠 ANALISA PAKAR AI (JKN KEDAH)")
+    st.subheader(f"🧠 ANALISA {st.session_state.ai_engine.upper()}")
     
     if st.session_state.ai_analysis:
         st.markdown(st.session_state.ai_analysis)
     else:
-        # Jika berita ada tapi analisa tiada (mungkin sebab ralat tadi), tunjuk butang retry
         st.info("Analisa AI tidak tersedia buat masa ini.")
         if st.button("🔄 CUBA ANALISA SEMULA"):
             run_ai_analysis()
             st.rerun()
 
 else:
-    # Initial State / Welcome
     st.write("Sila masukkan kata kunci di bar sisi dan klik 'Lancarkan Firewatch' untuk memulakan analisa.")
-    
-    # Placeholder layout
     col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Status Sistem", "ONLINE", "ACTIVE")
-    with col2:
-        st.metric("Unit", "Surveilans Digital", "JKN KEDAH")
-    with col3:
-        st.metric("AI Engine", "Gemini 2.0 Flash", "LLM")
-
+    with col1: st.metric("Status Sistem", "ONLINE", "ACTIVE")
+    with col2: st.metric("Unit", "Surveilans Digital", "JKN KEDAH")
+    with col3: st.metric("Multi-AI Mode", "READY", "Gemini/GPT/DeepSeek")
     st.markdown("""
-    ### Panduan Penggunaan:
-    1. **Masukkan API Key**: Gunakan kunci API anda dari Google AI Studio.
-    2. **Tentukan Kata Kunci**: Fokus kepada isu spesifik (cth: "vape sekolah", "bulu babi", "keracunan makanan kedah").
-    3. **Analisa**: Sistem akan mengambil data berita terkini dan menggunakan AI untuk menilai impak infodemik.
-    4. **Bertindak**: Gunakan cadangan AI untuk merangka pelan komunikasi risiko.
+    ### Jadikan Surveilans Lebih Fleksibel:
+    1. **Pilih Enjin AI**: Gunakan Gemini secara percuma, atau masukkan kunci ChatGPT/DeepSeek jika mahu alternatif.
+    2. **Pilih Sumber**: Pantau portal berita atau terus ke media sosial (TikTok/FB).
+    3. **Tapis Masa**: Fokus kepada isu yang paling baru (24 jam hingga 30 hari).
     """)
