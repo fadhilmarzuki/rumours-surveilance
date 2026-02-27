@@ -159,35 +159,59 @@ if run_btn:
         st.error("Ralat: Sila pilih sekurang-kurangnya satu sumber surveilans.")
     else:
         with st.spinner(f"⏳ Mencari data di {', '.join(sources)}..."):
-            base_query = st.session_state.keyword
+            # Gunakan quotes untuk ketepatan kata kunci (Exact Match)
+            base_query = f'"{st.session_state.keyword}"'
+            
+            # Platform filters
             site_filters = []
             if "TikTok" in sources: site_filters.append("site:tiktok.com")
             if "Facebook" in sources: site_filters.append("site:facebook.com")
             if "X (Twitter)" in sources: site_filters.append("site:x.com OR site:twitter.com")
             
             if "Semua Platform" in sources:
-                search_query = f"{base_query} (viral OR isu OR kecoh) when:{tf_code}"
+                # Cari merentasi semua, tapi pastikan kata kunci wujud
+                search_query = f"{base_query} when:{tf_code}"
             elif site_filters:
+                # Filter platform secara spesifik
                 platform_query = f"({ ' OR '.join(site_filters) })"
-                if "Portal Berita" in sources:
-                    search_query = f"{base_query} (viral OR isu OR {platform_query}) when:{tf_code}"
-                else:
-                    search_query = f"{base_query} {platform_query} when:{tf_code}"
+                # Gabungkan kata kunci DENGAN platform (Gunakan AND logic)
+                search_query = f"{base_query} {platform_query} when:{tf_code}"
             else:
+                # Portal Berita sahaja
                 search_query = f"{base_query} when:{tf_code}"
 
             encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query)}&hl=ms&gl=MY&ceid=MY:ms"
             feed = feedparser.parse(encoded_url)
             
+            # Jika carian spesifik tiada hasil, cuba longgarkan sedikit (tanpa quotes)
+            if not feed.entries:
+                search_query_relaxed = f"{st.session_state.keyword} {' '.join(site_filters)} when:{tf_code}"
+                encoded_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(search_query_relaxed)}&hl=ms&gl=MY&ceid=MY:ms"
+                feed = feedparser.parse(encoded_url)
+
             if feed.entries:
-                st.session_state.last_results = feed.entries[:5]
+                # Filter tambahan secara manual untuk pastikan kata kunci wujud dalam tajuk
+                # (Google RSS kadangkala bagi 'related' content yang tidak tepat)
+                relevant_entries = []
+                kw_lower = st.session_state.keyword.lower()
+                for entry in feed.entries:
+                    if kw_lower in entry.title.lower():
+                        relevant_entries.append(entry)
+                
+                # Jika filter manual terlalu ketat (0 hasil), ambil saja apa yang Google bagi
+                if not relevant_entries:
+                    relevant_entries = feed.entries[:5]
+                else:
+                    relevant_entries = relevant_entries[:5]
+
+                st.session_state.last_results = relevant_entries
                 st.session_state.news_context = ""
                 for i, entry in enumerate(st.session_state.last_results):
                     st.session_state.news_context += f"ISU {i+1}: {entry.title}\n"
                 run_ai_analysis()
             else:
                 st.session_state.last_results = []
-                st.warning(f"Tiada isu dijumpai untuk '{st.session_state.keyword}' bagi tempoh {timeframe}.")
+                st.warning(f"Tiada isu ditemui untuk '{st.session_state.keyword}' bagi platform tempoh {timeframe}.")
 
 # --- DISPLAY SECTION ---
 if st.session_state.last_results:
