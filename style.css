@@ -15,20 +15,22 @@
     font-family: 'Roboto', sans-serif;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     font-family: 'Orbitron', sans-serif;
     color: var(--primary-color) !important;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-.stTextInput > div > div > input {
+.stTextInput>div>div>input {
     background-color: rgba(255, 255, 255, 0.1) !important;
     color: white !important;
     border: 1px solid var(--primary-color) !important;
 }
 
-.stButton > button {
+.stButton>button {
     background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)) !important;
     color: white !important;
     border: none !important;
@@ -40,7 +42,7 @@ h1, h2, h3 {
     width: 100%;
 }
 
-.stButton > button:hover {
+.stButton>button:hover {
     transform: scale(1.02);
     box-shadow: 0 0 15px var(--primary-color);
 }
@@ -75,26 +77,26 @@ h1, h2, h3 {
     border-right: 1px solid var(--primary-color);
 }
 
-[data-testid="stSidebar"] .stMarkdown h1, 
-[data-testid="stSidebar"] .stMarkdown h2, 
+[data-testid="stSidebar"] .stMarkdown h1,
+[data-testid="stSidebar"] .stMarkdown h2,
 [data-testid="stSidebar"] .stMarkdown h3 {
     color: var(--text-color) !important;
     font-size: 1.2rem;
 }
 
-.stTextInput > label {
+.stTextInput>label {
     color: var(--text-color) !important;
     font-weight: bold;
 }
 
-.stTextInput > div > div > input {
+.stTextInput>div>div>input {
     background-color: rgba(0, 0, 0, 0.3) !important;
     color: white !important;
     border: 1px solid rgba(255, 75, 43, 0.3) !important;
     border-radius: 8px !important;
 }
 
-.stTextInput > div > div > input:focus {
+.stTextInput>div>div>input:focus {
     border-color: var(--primary-color) !important;
     box-shadow: 0 0 5px var(--primary-color) !important;
 }
@@ -104,6 +106,26 @@ h1, h2, h3 {
     background-color: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     color: var(--text-color) !important;
+}
+
+/* Link Styling */
+a {
+    color: var(--accent-color) !important;
+    text-decoration: none !important;
+    font-weight: bold !important;
+    transition: color 0.3s ease !important;
+}
+
+a:hover {
+    color: var(--primary-color) !important;
+    text-decoration: underline !important;
+}
+
+.stMarkdown a {
+    background: rgba(0, 212, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
 }
 
 /* Custom Scrollbar */
