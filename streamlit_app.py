@@ -70,6 +70,7 @@ def run_ai_analysis():
                 st.session_state.ai_analysis = response.choices[0].message.content
             
             elif st.session_state.ai_engine == "DeepSeek":
+                # DeepSeek uses the OpenAI SDK but requires a different base_url
                 client = OpenAI(api_key=st.session_state.api_key, base_url="https://api.deepseek.com")
                 response = client.chat.completions.create(
                     model="deepseek-chat",
@@ -80,15 +81,20 @@ def run_ai_analysis():
         if st.session_state.ai_analysis:
             st.success(f"✅ ANALISIS {st.session_state.ai_engine.upper()} SIAP")
         else:
-            st.info("Tiada output dari AI. Sila cuba lagi.")
+            st.warning("⚠️ AI memulangkan respons kosong.")
                 
     except Exception as e:
         error_msg = str(e)
+        st.error(f"❌ RALAT TEKNIKAL: {st.session_state.ai_engine}")
+        st.code(error_msg) # Tunjukkan ralat sebenar untuk debugging
+        
         if "429" in error_msg:
-            st.warning("🚨 HAD KUOTA DICAPAI")
-            st.error("Sila tunggu 1 minit sebelum menekan butang 'Cuba Analisa Semula'.")
+            st.warning("🚨 HAD KUOTA DICAPAI (Too Many Requests)")
+            st.info("Sila tunggu 1 minit sebelum mencuba lagi.")
+        elif "api_key" in error_msg.lower() or "invalid" in error_msg.lower():
+            st.error("🔑 Masalah Kunci API: Sila pastikan kunci adalah sah untuk enjin ini.")
         else:
-            st.error(f"⚠️ Ralat AI ({st.session_state.ai_engine}): {error_msg}")
+            st.info("Sila pastikan anda mempunyai sambungan internet yang stabil dan API Key yang aktif.")
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -96,16 +102,23 @@ with st.sidebar:
     st.title("KIF CONTROL")
     st.markdown("---")
     
-    st.session_state.ai_engine = st.selectbox(
+    new_engine = st.selectbox(
         "PILIH ENJIN AI",
         options=["Gemini (Google)", "ChatGPT (OpenAI)", "DeepSeek"],
         index=0
     )
+    
+    # Reset analysis if engine changes to avoid confusion
+    if new_engine != st.session_state.ai_engine:
+        st.session_state.ai_engine = new_engine
+        st.session_state.ai_analysis = ""
+        st.rerun()
 
     st.session_state.api_key = st.text_input(
         f"KUNCI API {st.session_state.ai_engine.upper()}", 
         value=st.session_state.api_key, 
-        type="password"
+        type="password",
+        help=f"Pastikan anda menggunakan kunci yang sah untuk {st.session_state.ai_engine}."
     )
     
     st.session_state.keyword = st.text_input(
