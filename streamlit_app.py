@@ -83,6 +83,8 @@ def run_ai_analysis(retry_count=0):
 
         if st.session_state.ai_analysis:
             st.success(f"✅ ANALISIS {st.session_state.ai_engine.upper()} SIAP")
+            st.session_state.retry_count = 0
+            st.session_state.retry_active = False
         else:
             st.warning("⚠️ AI memulangkan respons kosong.")
                 
@@ -205,6 +207,8 @@ st.markdown("### Sistem Pemantauan Isu Kesihatan Awam")
 
 if run_btn:
     st.session_state.ai_analysis = ""
+    st.session_state.retry_count = 0
+    st.session_state.retry_active = False
     if not st.session_state.api_key:
         st.error(f"Ralat: Sila masukkan API Key {st.session_state.ai_engine} di bar sisi.")
     elif not sources:
